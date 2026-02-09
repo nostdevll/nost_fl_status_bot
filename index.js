@@ -13,7 +13,7 @@ const OFFLINE_STATUS = "🟢 Commission Open";
 // Salon et rôle pour les annonces
 const ANNOUNCE_CHANNEL_ID = "1455615555057881129";
 const ROLE_LIVE_ID = "1455618290155262004";
-const TWITCH_LINK = "https://twitch.tv/nost___";
+const TWITCH_LINK = "https://twitch.tv/nost_fl";
 
 // Discord client
 const client = new Client({
@@ -120,3 +120,4 @@ client.on("ready", () => {
 //  LOGIN DISCORD
 // -----------------------------
 client.login(DISCORD_TOKEN);
+
