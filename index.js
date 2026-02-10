@@ -1,4 +1,5 @@
 import fetch from "node-fetch";
+import fs from "fs";
 import { Client, GatewayIntentBits } from "discord.js";
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
@@ -22,15 +23,46 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent
   ]
-
 });
 
-let accessToken = null;
-let lastState = "offline";
+// -----------------------------
+//  SYSTEME XP / NIVEAUX
+// -----------------------------
+let xpData = {};
+
+if (fs.existsSync("levels.json")) {
+  xpData = JSON.parse(fs.readFileSync("levels.json"));
+}
+
+function saveXP() {
+  fs.writeFileSync("levels.json", JSON.stringify(xpData, null, 2));
+}
+
+function addXP(userId, amount) {
+  if (!xpData[userId]) {
+    xpData[userId] = { xp: 0, level: 1 };
+  }
+
+  xpData[userId].xp += amount;
+
+  const nextLevelXP = xpData[userId].level * 100;
+
+  if (xpData[userId].xp >= nextLevelXP) {
+    xpData[userId].level++;
+    saveXP();
+    return true; // level up
+  }
+
+  saveXP();
+  return false;
+}
 
 // -----------------------------
 //  TWITCH TOKEN
 // -----------------------------
+let accessToken = null;
+let lastState = "offline";
+
 async function getTwitchToken() {
   const res = await fetch(
     `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`,
@@ -110,6 +142,38 @@ async function checkLive() {
 }
 
 // -----------------------------
+//  SYSTEME XP : MESSAGECREATE
+// -----------------------------
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+
+  const userId = message.author.id;
+
+  const levelUp = addXP(userId, 10); // +10 XP par message
+
+  if (levelUp) {
+    message.channel.send(
+      `🎉 GG ${message.author}, tu passes **niveau ${xpData[userId].level}** !`
+    );
+  }
+
+  // Commande leaderboard
+  if (message.content === "!leaderboard") {
+    const sorted = Object.entries(xpData)
+      .sort((a, b) => b[1].xp - a[1].xp)
+      .slice(0, 10);
+
+    let board = "🏆 **Leaderboard XP**\n\n";
+
+    sorted.forEach(([id, data], index) => {
+      board += `**${index + 1}.** <@${id}> — Niveau ${data.level} (${data.xp} XP)\n`;
+    });
+
+    message.channel.send(board);
+  }
+});
+
+// -----------------------------
 //  BOT READY
 // -----------------------------
 client.on("ready", () => {
@@ -122,35 +186,3 @@ client.on("ready", () => {
 //  LOGIN DISCORD
 // -----------------------------
 client.login(DISCORD_TOKEN);
-
-
-import fs from "fs";
-
-let xpData = {};
-
-if (fs.existsSync("levels.json")) {
-  xpData = JSON.parse(fs.readFileSync("levels.json"));
-}
-
-function saveXP() {
-  fs.writeFileSync("levels.json", JSON.stringify(xpData, null, 2));
-}
-
-function addXP(userId, amount) {
-  if (!xpData[userId]) {
-    xpData[userId] = { xp: 0, level: 1 };
-  }
-
-  xpData[userId].xp += amount;
-
-  const nextLevelXP = xpData[userId].level * 100;
-
-  if (xpData[userId].xp >= nextLevelXP) {
-    xpData[userId].level++;
-    return true; // level up
-  }
-
-  saveXP();
-  return false;
-}
-
