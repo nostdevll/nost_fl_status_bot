@@ -152,10 +152,6 @@ const commands = [
   {
     name: "rank",
     description: "Affiche ton niveau et ton XP"
-  },
-  {
-    name: "leaderboard",
-    description: "Affiche le classement des joueurs"
   }
 ];
 
@@ -169,7 +165,7 @@ client.on("ready", async () => {
       Routes.applicationCommands(client.user.id),
       { body: commands }
     );
-    console.log("Commandes /rank et /leaderboard enregistrées");
+    console.log("Commande /rank enregistrée");
   } catch (err) {
     console.error(err);
   }
@@ -179,14 +175,14 @@ client.on("ready", async () => {
 });
 
 // -----------------------------
-//  INTERACTIONCREATE : /rank + /leaderboard
+//  INTERACTIONCREATE : /rank
 // -----------------------------
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  const userId = interaction.user.id;
-
   if (interaction.commandName === "rank") {
+    const userId = interaction.user.id;
+
     if (!xpData[userId]) {
       xpData[userId] = { xp: 0, level: 1 };
       saveXP();
@@ -195,6 +191,7 @@ client.on("interactionCreate", async (interaction) => {
     const level = xpData[userId].level;
     const xp = xpData[userId].xp;
     const nextXP = Math.floor(100 * Math.pow(level, 1.5));
+
     const percent = Math.floor((xp / nextXP) * 100);
 
     const embed = {
@@ -207,30 +204,7 @@ client.on("interactionCreate", async (interaction) => {
       ]
     };
 
-    return interaction.reply({ embeds: [embed] });
-  }
-
-  if (interaction.commandName === "leaderboard") {
-    const sorted = Object.entries(xpData)
-      .sort((a, b) => b[1].xp - a[1].xp)
-      .slice(0, 10);
-
-    const embed = {
-      title: "🏆 Leaderboard XP",
-      description: "Top 10 des membres les plus actifs",
-      color: 0xffd700,
-      fields: []
-    };
-
-    sorted.forEach(([id, data], index) => {
-      embed.fields.push({
-        name: `#${index + 1} — Niveau ${data.level}`,
-        value: `<@${id}> — ${data.xp} XP`,
-        inline: false
-      });
-    });
-
-    return interaction.reply({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 });
 
@@ -255,4 +229,3 @@ client.on("messageCreate", async (message) => {
 //  LOGIN DISCORD
 // -----------------------------
 client.login(DISCORD_TOKEN);
-
