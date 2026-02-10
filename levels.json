@@ -1,1 +1,16 @@
-{}
+{
+  "USER_ID": {
+    "xp": 1200,
+    "level": 5,
+    "weeklyXP": 300,
+    "cooldowns": {
+      "daily": 0,
+      "mysterybox": 0
+    },
+    "quests": {
+      "messages": 0,
+      "goal": 20,
+      "reward": 150
+    }
+  }
+}
