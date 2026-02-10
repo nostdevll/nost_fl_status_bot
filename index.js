@@ -121,3 +121,33 @@ client.on("ready", () => {
 // -----------------------------
 client.login(DISCORD_TOKEN);
 
+
+import fs from "fs";
+
+let xpData = {};
+
+if (fs.existsSync("levels.json")) {
+  xpData = JSON.parse(fs.readFileSync("levels.json"));
+}
+
+function saveXP() {
+  fs.writeFileSync("levels.json", JSON.stringify(xpData, null, 2));
+}
+
+function addXP(userId, amount) {
+  if (!xpData[userId]) {
+    xpData[userId] = { xp: 0, level: 1 };
+  }
+
+  xpData[userId].xp += amount;
+
+  const nextLevelXP = xpData[userId].level * 100;
+
+  if (xpData[userId].xp >= nextLevelXP) {
+    xpData[userId].level++;
+    return true; // level up
+  }
+
+  saveXP();
+  return false;
+}
