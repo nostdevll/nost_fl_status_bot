@@ -1,17 +1,21 @@
-{
-  "USER_ID": {
-    "xp": 0,
-    "level": 1,
-    "weeklyXP": 0,
-    "cooldowns": {
-      "daily": 0,
-      "mysterybox": 0
-    },
-    "quests": {
-      "messages": 0,
-      "goal": 20,
-      "reward": 150,
-      "lastReset": 0
-    }
+// Structure XP améliorée
+function ensureUserData(userId) {
+  if (!xpData[userId]) {
+    xpData[userId] = {
+      xp: 0,
+      level: 1,
+      weeklyXP: 0,
+      cooldowns: {
+        daily: 0,
+        mysterybox: 0
+      },
+      quests: {
+        type: null,
+        progress: 0,
+        goal: 0,
+        reward: 0,
+        lastReset: 0
+      }
+    };
   }
 }
