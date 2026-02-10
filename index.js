@@ -19,8 +19,10 @@ const TWITCH_LINK = "https://twitch.tv/nost_fl";
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
   ]
+
 });
 
 let accessToken = null;
@@ -151,3 +153,4 @@ function addXP(userId, amount) {
   saveXP();
   return false;
 }
+
