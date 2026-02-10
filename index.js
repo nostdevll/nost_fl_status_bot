@@ -38,6 +38,7 @@ function saveXP() {
   fs.writeFileSync("levels.json", JSON.stringify(xpData, null, 2));
 }
 
+// XP progressif : de plus en plus dur
 function addXP(userId, amount) {
   if (!xpData[userId]) {
     xpData[userId] = { xp: 0, level: 1 };
@@ -45,7 +46,8 @@ function addXP(userId, amount) {
 
   xpData[userId].xp += amount;
 
-  const nextLevelXP = xpData[userId].level * 100;
+  // XP requis pour le prochain niveau (progression exponentielle)
+  const nextLevelXP = Math.floor(100 * Math.pow(xpData[userId].level, 1.5));
 
   if (xpData[userId].xp >= nextLevelXP) {
     xpData[userId].level++;
@@ -157,19 +159,28 @@ client.on("messageCreate", async (message) => {
     );
   }
 
-  // Commande leaderboard
+  // Commande leaderboard en embed
   if (message.content === "!leaderboard") {
     const sorted = Object.entries(xpData)
       .sort((a, b) => b[1].xp - a[1].xp)
       .slice(0, 10);
 
-    let board = "🏆 **Leaderboard XP**\n\n";
+    const embed = {
+      title: "🏆 Leaderboard XP",
+      description: "Voici les 10 membres les plus actifs du serveur",
+      color: 0xffd700,
+      fields: []
+    };
 
     sorted.forEach(([id, data], index) => {
-      board += `**${index + 1}.** <@${id}> — Niveau ${data.level} (${data.xp} XP)\n`;
+      embed.fields.push({
+        name: `#${index + 1} — Niveau ${data.level}`,
+        value: `<@${id}> — ${data.xp} XP`,
+        inline: false
+      });
     });
 
-    message.channel.send(board);
+    message.channel.send({ embeds: [embed] });
   }
 });
 
