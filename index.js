@@ -1,6 +1,11 @@
 import fetch from "node-fetch";
 import fs from "fs";
-import { Client, GatewayIntentBits } from "discord.js";
+import { 
+  Client, 
+  GatewayIntentBits, 
+  REST, 
+  Routes 
+} from "discord.js";
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
@@ -46,13 +51,12 @@ function addXP(userId, amount) {
 
   xpData[userId].xp += amount;
 
-  // XP requis pour le prochain niveau (progression exponentielle)
   const nextLevelXP = Math.floor(100 * Math.pow(xpData[userId].level, 1.5));
 
   if (xpData[userId].xp >= nextLevelXP) {
     xpData[userId].level++;
     saveXP();
-    return true; // level up
+    return true;
   }
 
   saveXP();
@@ -116,7 +120,6 @@ async function checkLive() {
   const data = await res.json();
   const isLive = data.data && data.data.length > 0;
 
-  // Passage en LIVE
   if (isLive && lastState !== "live") {
     console.log("🔴 Passage en LIVE");
 
@@ -129,7 +132,6 @@ async function checkLive() {
     lastState = "live";
   }
 
-  // Passage en OFFLINE
   if (!isLive && lastState !== "offline") {
     console.log("🟢 Passage en OFFLINE");
 
@@ -144,30 +146,78 @@ async function checkLive() {
 }
 
 // -----------------------------
-//  SYSTEME XP : MESSAGECREATE
+//  COMMANDES SLASH
 // -----------------------------
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
+const commands = [
+  {
+    name: "rank",
+    description: "Affiche ton niveau et ton XP"
+  },
+  {
+    name: "leaderboard",
+    description: "Affiche le classement des joueurs"
+  }
+];
 
-  const userId = message.author.id;
+client.on("ready", async () => {
+  console.log(`Bot connecté en tant que ${client.user.tag}`);
 
-  const levelUp = addXP(userId, 10); // +10 XP par message
+  const rest = new REST({ version: "10" }).setToken(DISCORD_TOKEN);
 
-  if (levelUp) {
-    message.channel.send(
-      `🎉 GG ${message.author}, tu passes **niveau ${xpData[userId].level}** !`
+  try {
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: commands }
     );
+    console.log("Commandes /rank et /leaderboard enregistrées");
+  } catch (err) {
+    console.error(err);
   }
 
-  // Commande leaderboard en embed
-  if (message.content === "!leaderboard") {
+  checkLive();
+  setInterval(checkLive, 30000);
+});
+
+// -----------------------------
+//  INTERACTIONCREATE : /rank + /leaderboard
+// -----------------------------
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+
+  const userId = interaction.user.id;
+
+  if (interaction.commandName === "rank") {
+    if (!xpData[userId]) {
+      xpData[userId] = { xp: 0, level: 1 };
+      saveXP();
+    }
+
+    const level = xpData[userId].level;
+    const xp = xpData[userId].xp;
+    const nextXP = Math.floor(100 * Math.pow(level, 1.5));
+    const percent = Math.floor((xp / nextXP) * 100);
+
+    const embed = {
+      title: `📊 Rang de ${interaction.user.username}`,
+      color: 0x00aaff,
+      fields: [
+        { name: "Niveau", value: `${level}`, inline: true },
+        { name: "XP", value: `${xp} / ${nextXP}`, inline: true },
+        { name: "Progression", value: `${percent}%`, inline: false }
+      ]
+    };
+
+    return interaction.reply({ embeds: [embed] });
+  }
+
+  if (interaction.commandName === "leaderboard") {
     const sorted = Object.entries(xpData)
       .sort((a, b) => b[1].xp - a[1].xp)
       .slice(0, 10);
 
     const embed = {
       title: "🏆 Leaderboard XP",
-      description: "Voici les 10 membres les plus actifs du serveur",
+      description: "Top 10 des membres les plus actifs",
       color: 0xffd700,
       fields: []
     };
@@ -180,17 +230,25 @@ client.on("messageCreate", async (message) => {
       });
     });
 
-    message.channel.send({ embeds: [embed] });
+    return interaction.reply({ embeds: [embed] });
   }
 });
 
 // -----------------------------
-//  BOT READY
+//  SYSTEME XP : MESSAGECREATE
 // -----------------------------
-client.on("ready", () => {
-  console.log(`Bot connecté en tant que ${client.user.tag}`);
-  checkLive();
-  setInterval(checkLive, 30000);
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+
+  const userId = message.author.id;
+
+  const levelUp = addXP(userId, 10);
+
+  if (levelUp) {
+    message.channel.send(
+      `🎉 GG ${message.author}, tu passes **niveau ${xpData[userId].level}** !`
+    );
+  }
 });
 
 // -----------------------------
